@@ -166,6 +166,25 @@ class ChangePlan:
     mutates_files: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class VerificationReceipt:
+    """Deterministic evidence that a repository state was checked."""
+
+    protocol_version: int
+    receipt_version: int
+    repository: str
+    snapshot_digest: str
+    baseline_digest: str | None
+    changed: bool
+    checks: tuple[str, ...]
+    findings_count: int
+    error_findings: int
+    impact_score: int | None
+    status: str
+    diagnostics: tuple[Diagnostic, ...] = ()
+    digest: str = ""
+
+
 def dataclass_dict(value: Any) -> dict[str, Any]:
     """Convert supported frozen dataclasses to a JSON-ready recursive mapping."""
 

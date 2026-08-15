@@ -8,7 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from changeweaver.domain.errors import SnapshotError
-from changeweaver.domain.models import Diagnostic, Edge, Node, Severity, Snapshot, dataclass_value
+from changeweaver.domain.models import (
+    Diagnostic,
+    Edge,
+    Node,
+    Severity,
+    Snapshot,
+    VerificationReceipt,
+    dataclass_value,
+)
 
 
 def canonical_json(value: Any) -> str:
@@ -36,6 +44,30 @@ def snapshot_to_dict(snapshot: Snapshot) -> dict[str, Any]:
 def snapshot_digest(snapshot: Snapshot) -> str:
     encoded = canonical_json(snapshot_without_digest(snapshot)).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def receipt_without_digest(receipt: VerificationReceipt) -> dict[str, Any]:
+    payload = dataclass_value(receipt)
+    if not isinstance(payload, dict):
+        raise TypeError("receipt must serialize to an object")
+    payload.pop("digest", None)
+    return payload
+
+
+def receipt_digest(receipt: VerificationReceipt) -> str:
+    encoded = canonical_json(receipt_without_digest(receipt)).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def receipt_to_dict(receipt: VerificationReceipt) -> dict[str, Any]:
+    payload = receipt_without_digest(receipt)
+    payload["digest"] = receipt.digest
+    return payload
+
+
+def write_receipt(path: Path, receipt: VerificationReceipt) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(canonical_json(receipt_to_dict(receipt)) + "\n", encoding="utf-8")
 
 
 def write_snapshot(path: Path, snapshot: Snapshot) -> None:

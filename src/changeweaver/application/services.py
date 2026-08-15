@@ -17,8 +17,9 @@ from changeweaver.domain.models import (
     ImpactReport,
     Severity,
     Snapshot,
+    VerificationReceipt,
 )
-from changeweaver.infrastructure.serialization import snapshot_digest
+from changeweaver.infrastructure.serialization import receipt_digest, snapshot_digest
 
 ANALYZER_ID = "lexical-dart/0.1"
 
@@ -189,3 +190,54 @@ def make_change_plan(
 
 def has_error_findings(findings: tuple[Finding, ...]) -> bool:
     return any(item.severity == Severity.ERROR for item in findings)
+
+
+def build_verification_receipt(
+    current: Snapshot,
+    baseline: Snapshot | None,
+    findings: tuple[Finding, ...],
+    impact: ImpactReport | None,
+) -> VerificationReceipt:
+    """Create deterministic evidence for the exact checks performed."""
+
+    changes = diff_snapshots(baseline, current) if baseline is not None else None
+    diagnostics = tuple(current.diagnostics)
+    if changes is not None:
+        diagnostics = tuple((*diagnostics, *changes.diagnostics))
+    checks = ["snapshot", "architecture-contract"]
+    if baseline is not None:
+        checks.insert(1, "structural-diff")
+    if impact is not None:
+        checks.append("reverse-impact")
+    errors = sum(item.severity == Severity.ERROR for item in findings)
+    status = "failed" if errors or any(item.severity == Severity.ERROR for item in diagnostics) else "passed"
+    receipt = VerificationReceipt(
+        protocol_version=1,
+        receipt_version=1,
+        repository=current.repository,
+        snapshot_digest=current.digest,
+        baseline_digest=baseline.digest if baseline is not None else None,
+        changed=changes.changed if changes is not None else bool(findings or current.diagnostics),
+        checks=tuple(checks),
+        findings_count=len(findings),
+        error_findings=errors,
+        impact_score=impact.score if impact is not None else None,
+        status=status,
+        diagnostics=diagnostics,
+        digest="",
+    )
+    return VerificationReceipt(
+        protocol_version=receipt.protocol_version,
+        receipt_version=receipt.receipt_version,
+        repository=receipt.repository,
+        snapshot_digest=receipt.snapshot_digest,
+        baseline_digest=receipt.baseline_digest,
+        changed=receipt.changed,
+        checks=receipt.checks,
+        findings_count=receipt.findings_count,
+        error_findings=receipt.error_findings,
+        impact_score=receipt.impact_score,
+        status=receipt.status,
+        diagnostics=receipt.diagnostics,
+        digest=receipt_digest(receipt),
+    )

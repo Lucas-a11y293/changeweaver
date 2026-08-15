@@ -13,6 +13,7 @@ from changeweaver.domain.models import (
     ImpactReport,
     Severity,
     Snapshot,
+    VerificationReceipt,
     dataclass_value,
 )
 from changeweaver.infrastructure.serialization import snapshot_to_dict
@@ -48,6 +49,27 @@ def impact_result(impact: ImpactReport) -> dict[str, Any]:
 
 def plan_result(plan: ChangePlan) -> dict[str, Any]:
     return cast(dict[str, Any], dataclass_value(plan))
+
+
+def receipt_result(receipt: VerificationReceipt) -> dict[str, Any]:
+    return cast(dict[str, Any], dataclass_value(receipt))
+
+
+def render_text_receipt(receipt: VerificationReceipt) -> str:
+    baseline = receipt.baseline_digest[:12] if receipt.baseline_digest else "none"
+    impact = f"{receipt.impact_score}/100" if receipt.impact_score is not None else "not requested"
+    return (
+        f"Verification: {receipt.status.upper()}\n"
+        f"Receipt: {receipt.digest[:12]}\n"
+        f"Repository: {receipt.repository}\n"
+        f"Snapshot: {receipt.snapshot_digest[:12]}\n"
+        f"Baseline: {baseline}\n"
+        f"Changed: {str(receipt.changed).lower()}\n"
+        f"Checks: {', '.join(receipt.checks)}\n"
+        f"Findings: {receipt.findings_count} ({receipt.error_findings} errors)\n"
+        f"Impact: {impact}\n"
+        f"Diagnostics: {len(receipt.diagnostics)}\n"
+    )
 
 
 def render_text_snapshot(snapshot: Snapshot) -> str:

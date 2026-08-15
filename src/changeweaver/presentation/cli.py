@@ -9,6 +9,7 @@ import typer
 
 from changeweaver.application.services import (
     build_snapshot,
+    build_verification_receipt,
     check_contract,
     diff_snapshots,
     has_error_findings,
@@ -19,12 +20,13 @@ from changeweaver.domain.errors import ChangeWeaverError
 from changeweaver.domain.models import ChangeSet, Finding, dataclass_value
 from changeweaver.infrastructure.config import DEFAULT_CONFIG, load_contract
 from changeweaver.infrastructure.filesystem import safe_root
-from changeweaver.infrastructure.serialization import read_snapshot, write_snapshot
+from changeweaver.infrastructure.serialization import read_snapshot, write_receipt, write_snapshot
 from changeweaver.presentation.renderers import (
     changes_result,
     envelope,
     impact_result,
     plan_result,
+    receipt_result,
     render_html,
     render_json,
     render_mermaid,
@@ -33,6 +35,7 @@ from changeweaver.presentation.renderers import (
     render_text_findings,
     render_text_impact,
     render_text_plan,
+    render_text_receipt,
     render_text_snapshot,
     snapshot_result,
 )
@@ -198,6 +201,54 @@ def plan(
             typer.echo(render_json(envelope("plan", "ok", plan_result(result))))
         else:
             typer.echo(render_text_plan(result), nl=False)
+    except (ChangeWeaverError, OSError, ValueError) as exc:
+        _fail(str(exc), 2)
+
+
+@app.command()
+def verify(
+    root: Annotated[Path, typer.Option("--root", "-r", help="Repository root.")] = Path("."),
+    baseline: Annotated[Path | None, typer.Option("--baseline", help="Optional baseline snapshot.")] = None,
+    target: Annotated[list[str] | None, typer.Option("--target", help="Optional impact target.")] = None,
+    strict: Annotated[bool, typer.Option("--strict", help="Treat unclassified nodes as errors.")] = False,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Receipt output path.")] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit the versioned JSON envelope.")] = False,
+) -> None:
+    """Run evidence-first verification and emit a deterministic receipt."""
+
+    try:
+        repository = safe_root(root)
+        contract = load_contract(repository)
+        current = build_snapshot(repository, contract)
+        baseline_path = (
+            baseline if baseline is None or baseline.is_absolute() else repository / baseline
+        )
+        baseline_value = read_snapshot(baseline_path) if baseline_path is not None else None
+        impact = (
+            impact_report(
+                current,
+                tuple(target or ()),
+                contract.limits.max_nodes,
+                contract.limits.max_path_samples,
+            )
+            if target
+            else None
+        )
+        findings = check_contract(current, contract, strict)
+        receipt = build_verification_receipt(current, baseline_value, findings, impact)
+        if output is not None:
+            destination = output if output.is_absolute() else repository / output
+            write_receipt(destination, receipt)
+        if json_output:
+            typer.echo(render_json(envelope("verify", receipt.status, receipt_result(receipt))))
+        else:
+            typer.echo(render_text_receipt(receipt), nl=False)
+            if output is not None:
+                typer.echo(f"Wrote: {_display_path(destination, repository)}")
+        if receipt.status == "failed":
+            raise typer.Exit(code=1)
+    except typer.Exit:
+        raise
     except (ChangeWeaverError, OSError, ValueError) as exc:
         _fail(str(exc), 2)
 
