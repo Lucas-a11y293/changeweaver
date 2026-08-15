@@ -1,0 +1,29 @@
+version: 1
+project:
+  name: my_flutter_app
+  roots: [lib, packages]
+  include: ['**/*.dart']
+  exclude: ['**/*.g.dart', '**/*.freezed.dart', '.dart_tool/**', 'build/**']
+architecture:
+  layers:
+    - name: presentation
+      paths: ['**/presentation/**', '**/widgets/**', '**/screens/**']
+    - name: domain
+      paths: ['**/domain/**', '**/entities/**']
+    - name: data
+      paths: ['**/data/**', '**/repositories/**', '**/datasources/**']
+  rules:
+    - id: presentation-cannot-import-data
+      from: [presentation]
+      deny: [data]
+      severity: error
+      message: Presentation must depend on domain abstractions, not data implementations.
+    - id: domain-cannot-import-presentation
+      from: [domain]
+      deny: [presentation]
+      severity: error
+      message: Domain code must remain independent from UI code.
+analysis:
+  max_path_samples: 8
+  max_nodes: 10000
+  max_file_bytes: 1000000

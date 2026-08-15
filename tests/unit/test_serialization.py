@@ -1,12 +1,10 @@
 import json
 from pathlib import Path
 
-from changeweaver.application.services import build_snapshot
+from changeweaver.application.services import build_snapshot, check_contract
 from changeweaver.infrastructure.config import load_contract
 from changeweaver.infrastructure.serialization import read_snapshot, write_snapshot
 from changeweaver.presentation.renderers import render_html, render_mermaid, render_sarif
-from changeweaver.application.services import check_contract
-
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "sample_app"
 
