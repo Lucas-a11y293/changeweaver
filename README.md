@@ -1,5 +1,7 @@
 # ChangeWeaver
 
+![ChangeWeaver mark](docs/assets/changeweaver-mark.svg)
+
 **Explainable architecture contracts and change-impact analysis for Dart and Flutter repositories.**
 
 ChangeWeaver is a local-first Python CLI that turns architecture intent into reproducible evidence. It reads Dart/Flutter source conservatively, builds a deterministic import graph, compares snapshots, calculates reverse dependency impact, evaluates architecture contracts, and produces a no-mutation verification plan for developers and CI.
