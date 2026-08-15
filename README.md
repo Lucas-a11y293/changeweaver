@@ -112,7 +112,7 @@ SARIF output is designed for GitHub code-scanning ingestion:
 changeweaver check --sarif > changeweaver.sarif
 ```
 
-A minimal GitHub Action workflow is provided in [`.github/workflows/quality.yml`](.github/workflows/quality.yml).
+A minimal GitHub Action workflow is provided as [`docs/ci/quality.yml`](docs/ci/quality.yml). To activate it in a fork or with a token that has workflow-write permission, copy it to `.github/workflows/quality.yml`.
 
 ## Security and privacy
 
