@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem in ChangeWeaver.
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest repository fixture and exact command.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ChangeWeaver version
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Security considerations
+      description: Do not include secrets or private source code.
