@@ -43,6 +43,18 @@ jobs:
       - name: Analyze fixture contract
         run: |
           changeweaver check --root tests/fixtures/sample_app --sarif > changeweaver.sarif || test $? -eq 1
+      - name: Create verification receipt
+        run: |
+          changeweaver verify \
+            --root tests/fixtures/sample_app \
+            --target lib/domain/user.dart \
+            --output changeweaver-receipt.json \
+            --json || test $? -eq 1
+      - name: Upload verification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: changeweaver-verification-receipt
+          path: changeweaver-receipt.json
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:

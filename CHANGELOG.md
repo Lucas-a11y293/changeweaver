@@ -12,10 +12,12 @@ All notable changes to ChangeWeaver are documented here.
 - Snapshot diff for added and removed nodes and edges.
 - Architecture findings with stable rule IDs, severity, source locations, and evidence.
 - No-mutation verification plans.
+- Evidence-first `verify` command producing deterministic, content-addressed verification receipts.
 - Terminal, JSON, SARIF 2.1.0, Mermaid, and HTML renderers.
 - Safe root/path handling, symlink avoidance, file-size limits, node limits, and no network execution.
 - Unit, integration, CLI, and security tests with a Dart/Flutter-like fixture.
 - Project architecture, contribution, security, and roadmap documentation.
+- GitHub Actions example that persists a verification receipt as a build artifact.
 
 ### Boundaries
 

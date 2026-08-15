@@ -21,6 +21,7 @@ Scaffolding tools are excellent at starting projects, and linters are excellent 
 | Compare snapshots | `changeweaver diff` | Added/removed nodes and edges |
 | Calculate blast radius | `changeweaver impact lib/domain/user.dart` | Reverse reachability, score, and path evidence |
 | Enforce architecture rules | `changeweaver check --sarif` | Stable findings and SARIF 2.1.0 |
+| Create an evidence receipt | `changeweaver verify --output ...` | Deterministic proof of the exact checks performed |
 | Create a review plan | `changeweaver plan --target ...` | Ordered verification steps with no mutation |
 | Render artifacts | `changeweaver render snapshot.json --format mermaid` | JSON, Mermaid, or HTML |
 
@@ -42,6 +43,7 @@ changeweaver snapshot --output .changeweaver/snapshots/current.json
 changeweaver check
 changeweaver impact lib/domain/user.dart
 changeweaver plan --target lib/domain/user.dart
+changeweaver verify --target lib/domain/user.dart --output .changeweaver/verification.json --json
 ```
 
 The default contract is intentionally small and must be edited to describe the project’s actual architecture. Generated Dart files such as `*.g.dart` and `*.freezed.dart` are excluded by default.
@@ -76,9 +78,24 @@ analysis:
 
 Unknown keys fail closed. Unclassified files are reported explicitly. The lexical analyzer reports unresolved imports as diagnostics instead of inventing semantic relationships.
 
+## Evidence-first verification
+
+The `verify` command combines the current snapshot, an optional structural baseline diff, an optional reverse-impact analysis, and the architecture contract check. It records only the checks that actually ran and emits a deterministic receipt containing snapshot and baseline digests, finding counts, diagnostics, status, and a receipt digest.
+
+```bash
+changeweaver verify \
+  --root . \
+  --baseline .changeweaver/snapshots/baseline.json \
+  --target lib/domain/user.dart \
+  --output .changeweaver/verification.json \
+  --json
+```
+
+The command is local-first and does not mutate source files. A failed enforced contract or error diagnostic returns exit code `1`; malformed input returns `2`.
+
 ## Architecture
 
-The project uses a small hexagonal architecture. The domain owns immutable graph, finding, snapshot, and plan models. Application services orchestrate snapshot, diff, impact, and check use cases. Adapters read Dart and Pub facts. Infrastructure handles bounded filesystem access and canonical serialization. Presentation contains the CLI and renderers.
+The project uses a small hexagonal architecture. The domain owns immutable graph, finding, snapshot, plan, and verification-receipt models. Application services orchestrate snapshot, diff, impact, contract-check, and receipt use cases. Adapters read Dart and Pub facts. Infrastructure handles bounded filesystem access and canonical serialization. Presentation contains the CLI and renderers.
 
 ```mermaid
 flowchart LR
@@ -92,7 +109,12 @@ flowchart LR
     DIFF --> PLAN[No-mutation plan]
     IMPACT --> PLAN
     CHECK --> PLAN
+    SNAP --> VERIFY[Deterministic receipt]
+    DIFF --> VERIFY
+    IMPACT --> VERIFY
+    CHECK --> VERIFY
     PLAN --> OUT[JSON / SARIF / HTML / Mermaid]
+    VERIFY --> RECEIPT[JSON receipt]
 ```
 
 Read [`ARCHITECTURE.md`](ARCHITECTURE.md) for data flow, security boundaries, algorithm choices, and extension points.
@@ -110,6 +132,12 @@ SARIF output is designed for GitHub code-scanning ingestion:
 
 ```bash
 changeweaver check --sarif > changeweaver.sarif
+```
+
+For evidence-first CI, persist the receipt as an artifact:
+
+```bash
+changeweaver verify --root . --output changeweaver-receipt.json --json
 ```
 
 A minimal GitHub Action workflow is provided as [`docs/ci/quality.yml`](docs/ci/quality.yml). To activate it in a fork or with a token that has workflow-write permission, copy it to `.github/workflows/quality.yml`.
