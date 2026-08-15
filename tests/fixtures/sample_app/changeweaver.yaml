@@ -1,0 +1,24 @@
+version: 1
+project:
+  name: sample_app
+  roots: [lib]
+  include: ['**/*.dart']
+  exclude: ['**/*.g.dart', '**/*.freezed.dart', '.dart_tool/**']
+architecture:
+  layers:
+    - name: presentation
+      paths: ['lib/presentation/**']
+    - name: domain
+      paths: ['lib/domain/**']
+    - name: data
+      paths: ['lib/data/**']
+  rules:
+    - id: presentation-cannot-import-data
+      from: [presentation]
+      deny: [data]
+      severity: error
+      message: Presentation must depend on domain abstractions, not data implementations.
+analysis:
+  max_path_samples: 8
+  max_nodes: 100
+  max_file_bytes: 100000
